@@ -7,6 +7,7 @@ const validateBearerToken = require('./validator')
 const { NODE_ENV } = require('./config')
 const bookmarksRouter = require('./bookmarks/bookmarks-router')
 
+
 const app = express()
 
 const morganOption = (NODE_ENV === 'production')
@@ -18,14 +19,13 @@ const jsonParser= express.json()
 app.use(morgan(morganOption))
 app.use(helmet())
 app.use(cors())
-
 app.use(validateBearerToken)
-
 app.use(bookmarksRouter)
-
 app.use(express.json())
 
-
+app.get('/', (req, res) => {
+    res.send('Hello, world!')
+  })
 
 
 
@@ -39,8 +39,5 @@ app.use(function errorHandler(error, req, res, next) {
     }
     res.status(500).json(response)
 })
-
-
-
 
 module.exports = app
