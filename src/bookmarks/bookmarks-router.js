@@ -21,7 +21,7 @@ const serializeBookmark = bookmark => ({
 
 // route for /bookmarks
 bookmarksRouter
-  .route('/bookmarks')
+  .route('/api/bookmarks')
   .get((req, res, next) => {
     BookmarksService.getAllBookmarks(req.app.get('db'))
       .then(bookmarks => {
@@ -75,7 +75,7 @@ bookmarksRouter
         logger.info(`Bookmark with id ${bookmark.id} created.`)
         res
           .status(201)
-          .location(`/bookmarks/${bookmark.id}`)
+          .location(`/api/bookmarks/${bookmark.id}`)
           .json(serializeBookmark(bookmark))
       })
       .catch(next)
@@ -85,8 +85,8 @@ bookmarksRouter
 //routes for /bookmarks/id
 
 bookmarksRouter
-  .route('/bookmarks/:id')
-  .get((req, res, next) => {
+  .route('/api/bookmarks/:id')
+  .all((req, res, next) => {
     const { id } = req.params
     BookmarksService.getById(req.app.get('db'), id)
       .then(bookmark => {
@@ -99,6 +99,9 @@ bookmarksRouter
         res.json(serializeBookmark(bookmark))
       })
       .catch(next)
+  })
+  .get((req, res) => {
+    res.json(serializeBookmark(res.bookmark))
   })
   .delete((req, res, next) => {
     const { bookmark_id } = req.params
@@ -113,4 +116,36 @@ bookmarksRouter
       .catch(next)
   })
 
+  .patch(jsonParser, (req, res, next) => {
+    const { title, url, description, rating } = req.body
+    const bookmarkToUpdate = { title, url, description, rating }
+
+    const numberofValues = Object.values(bookmarkToUpdate).filter(Boolean).length
+    if (numberofValues === 0) {
+      logger.error(`Invalid update without required fieds`)
+      return res.send(400).json({
+        error: {
+          message: `Request body must content either 'title', 'url, 'description', or 'rating'`
+        }
+      })
+    }
+
+    const error = getBookmarkValidationError(bookmarkToUpdate)
+
+    if (error) return res.status(400).send(error)
+
+    BookmarksService.updateBookmark(
+      req.app.get('db'),
+      req.params.bookmark_id,
+      bookmarkToUpdate
+    )
+      .then(numRowsAffected => {
+        res.status(204).end()
+      })
+      .catch(next)
+  })
+
+
+
+  
 module.exports = bookmarksRouter;
